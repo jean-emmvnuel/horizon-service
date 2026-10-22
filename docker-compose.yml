@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  horizon-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: horizon-service-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    volumes:
+      # Persistance de la base de données SQLite sur le serveur hôte
+      - ./horizon.db:/app/horizon.db
+    environment:
+      - NODE_ENV=production
+      - PORT=3001

@@ -1,44 +1,66 @@
-# --- ÉTAPE 1 : Build (Compilation) ---
-FROM node:24.13.0-alpine AS builder
+# =============================================================
+# HORIZON SERVICE API — DOCKERFILE MULTI-STAGE
+# Node.js 22 LTS / NestJS 11 / Better-SQLite3 / Prisma
+# =============================================================
+
+# --- ÉTAPE 1 : Dépendances & Compilation (Builder) ---
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Installation de toutes les dépendances
-COPY package*.json ./
-RUN npm install
+# Outils requis pour la compilation C++ native de better-sqlite3 sur Alpine
+RUN apk add --no-cache python3 make g++ sqlite
 
-COPY . .
-RUN npx prisma generate
-RUN npm run build
-
-# --- ÉTAPE 2 : Dépendances de production ---
-FROM node:24.13.0-alpine AS prod
-
-WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma/
 
-RUN npm install --omit=dev
-RUN npx prisma generate
+RUN npm ci
 
-# --- ÉTAPE 3 : Image Finale (Ultra légère) ---
-FROM node:24.13.0-alpine
+COPY . .
+
+# Génération des clients et compilation NestJS
+RUN npx prisma generate
+RUN npm run build
+
+# --- ÉTAPE 2 : Dépendances de Production uniquement ---
+FROM node:22-alpine AS prod-deps
 
 WORKDIR /app
 
-# Récupération du code compilé et du client Prisma généré
-COPY --from=builder /app/dist ./dist
-# On s'assure que le dossier 'generated' est au bon endroit pour les imports de dist/main.js
-COPY --from=builder /app/src/generated ./dist/generated
+RUN apk add --no-cache python3 make g++ sqlite
 
-# Récupération des node_modules de production
-COPY --from=prod /app/node_modules ./node_modules
-COPY --from=prod /app/package*.json ./
+COPY package*.json ./
+COPY prisma ./prisma/
 
-# Configuration de l'environnement
+RUN npm ci --omit=dev
+RUN npx prisma generate
+
+# --- ÉTAPE 3 : Image Finale de Production (Légère & Sécurisée) ---
+FROM node:22-alpine AS runner
+
+WORKDIR /app
+
+# Librairie SQLite d'exécution
+RUN apk add --no-cache sqlite-libs
+
 ENV NODE_ENV=production
+ENV PORT=3001
+
+# Copie des modules de production et du build
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package*.json ./
+
+# Copie de la base SQLite initiale (avec utilisateurs configurés)
+COPY horizon.db ./horizon.db
+
+# Définition des permissions pour l'utilisateur non-root
+RUN chown -R node:node /app
+
+USER node
 
 EXPOSE 3001
 
-# Lancement de l'application
+# Lancement de l'API NestJS
 CMD ["node", "dist/main.js"]
