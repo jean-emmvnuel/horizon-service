@@ -13,7 +13,7 @@ services:
       - .env
     volumes:
       # Persistance de la base de données SQLite sur le serveur hôte
-      - ./horizon.db:/app/horizon.db
+      - ./dev.db:/app/dev.db
     environment:
       - NODE_ENV=production
       - PORT=3001

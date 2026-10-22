@@ -53,7 +53,7 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package*.json ./
 
 # Copie de la base SQLite initiale (avec utilisateurs configurés)
-COPY horizon.db ./horizon.db
+COPY dev.db ./dev.db
 
 # Définition des permissions pour l'utilisateur non-root
 RUN chown -R node:node /app

@@ -7,14 +7,14 @@ export class DatabaseService implements OnModuleInit {
   private db: Database.Database;
 
   constructor() {
-    const dbPath = path.resolve(__dirname, '..', 'horizon.db');
+    const dbPath = path.resolve(__dirname, '..', 'dev.db');
     this.db = new Database(dbPath);
     this.db.pragma('journal_mode = WAL');
     this.db.pragma('foreign_keys = ON');
   }
 
   onModuleInit() {
-    console.log('✅ Base de données SQLite connectée avec succès (horizon.db)');
+    console.log('✅ Base de données SQLite connectée avec succès (dev.db)');
   }
 
   getDb(): Database.Database {
