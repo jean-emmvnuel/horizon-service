@@ -63,20 +63,35 @@ export class ApiController {
   @Post('abonnements')
   createAbonnement(@Body() body: any) {
     const id = body.id || 'ab-' + crypto.randomUUID().slice(0, 8);
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+    const dateDebut = body.dateDebut || today;
+    const dateFin = body.dateFin || nextMonth;
+    const tarif = Number(body.tarif) || 1500;
+    const statut = body.statut || 'actif';
+
     this.db.run(
       `INSERT INTO abonnements (id, client_id, profil_id, date_debut, date_fin, tarif, statut)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, body.clientId, body.profilId, body.dateDebut, body.dateFin, body.tarif, body.statut || 'actif']
+      [id, body.clientId, body.profilId, dateDebut, dateFin, tarif, statut]
     );
     return { success: true, id };
   }
 
   @Put('abonnements/:id')
   updateAbonnement(@Param('id') id: string, @Body() body: any) {
+    const existing = this.db.get<any>('SELECT * FROM abonnements WHERE id = ?', [id]);
+    const clientId = body.clientId !== undefined ? body.clientId : existing?.client_id;
+    const profilId = body.profilId !== undefined ? body.profilId : existing?.profil_id;
+    const dateDebut = body.dateDebut !== undefined ? body.dateDebut : existing?.date_debut;
+    const dateFin = body.dateFin !== undefined ? body.dateFin : existing?.date_fin;
+    const tarif = body.tarif !== undefined ? Number(body.tarif) : (existing?.tarif || 1500);
+    const statut = body.statut !== undefined ? body.statut : (existing?.statut || 'actif');
+
     this.db.run(
       `UPDATE abonnements SET client_id = ?, profil_id = ?, date_debut = ?, date_fin = ?, tarif = ?, statut = ?
        WHERE id = ?`,
-      [body.clientId, body.profilId, body.dateDebut, body.dateFin, body.tarif, body.statut || 'actif', id]
+      [clientId, profilId, dateDebut, dateFin, tarif, statut, id]
     );
     return { success: true };
   }
@@ -107,20 +122,28 @@ export class ApiController {
   @Post('clients')
   createClient(@Body() body: any) {
     const id = body.id || 'cli-' + crypto.randomUUID().slice(0, 8);
+    const nom = body.nom || 'Client';
+    const telephone = body.telephone || '';
     this.db.run(
       `INSERT INTO clients (id, nom, telephone, ancien_id, notes)
        VALUES (?, ?, ?, ?, ?)`,
-      [id, body.nom, body.telephone, body.ancienId || '', body.notes || '']
+      [id, nom, telephone, body.ancienId || '', body.notes || '']
     );
     return { success: true, id };
   }
 
   @Put('clients/:id')
   updateClient(@Param('id') id: string, @Body() body: any) {
+    const existing = this.db.get<any>('SELECT * FROM clients WHERE id = ?', [id]);
+    const nom = body.nom !== undefined ? body.nom : (existing?.nom || 'Client');
+    const telephone = body.telephone !== undefined ? body.telephone : (existing?.telephone || '');
+    const ancienId = body.ancienId !== undefined ? body.ancienId : (existing?.ancien_id || '');
+    const notes = body.notes !== undefined ? body.notes : (existing?.notes || '');
+
     this.db.run(
       `UPDATE clients SET nom = ?, telephone = ?, ancien_id = ?, notes = ?
        WHERE id = ?`,
-      [body.nom, body.telephone, body.ancienId || '', body.notes || '', id]
+      [nom, telephone, ancienId, notes, id]
     );
     return { success: true };
   }
@@ -137,20 +160,48 @@ export class ApiController {
   @Post('comptes')
   createCompte(@Body() body: any) {
     const id = body.id || 'cpt-' + crypto.randomUUID().slice(0, 8);
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+    const dateOuverture = body.dateOuverture || today;
+    const dateReabonnement = body.dateReabonnement || nextMonth;
+    const libelle = body.libelle || 'Compte Netflix';
+    const email = body.email || '';
+    const motDePasse = body.motDePasse || body.mot_de_passe || '';
+    const coutRecharge = Number(body.coutRechargeMensuel) || 6500;
+    const capacite = Number(body.capacitePlaces) || 15;
+    const maxProfils = Number(body.maxProfils) || 5;
+    const statut = body.statut || 'actif';
+    const notes = body.notes || '';
+
     this.db.run(
       `INSERT INTO comptes (id, libelle, email, mot_de_passe, date_ouverture, date_reabonnement, cout_recharge_mensuel, capacite_places, max_profils, statut, notes)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, body.libelle, body.email, body.motDePasse, body.dateOuverture, body.dateReabonnement, body.coutRechargeMensuel || 6500, body.capacitePlaces || 15, body.maxProfils || 5, body.statut || 'actif', body.notes || '']
+      [id, libelle, email, motDePasse, dateOuverture, dateReabonnement, coutRecharge, capacite, maxProfils, statut, notes]
     );
     return { success: true, id };
   }
 
   @Put('comptes/:id')
   updateCompte(@Param('id') id: string, @Body() body: any) {
+    const existing = this.db.get<any>('SELECT * FROM comptes WHERE id = ?', [id]);
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0];
+
+    const libelle = body.libelle !== undefined ? body.libelle : (existing?.libelle || 'Compte Netflix');
+    const email = body.email !== undefined ? body.email : (existing?.email || '');
+    const motDePasse = body.motDePasse !== undefined ? body.motDePasse : (existing?.mot_de_passe || '');
+    const dateOuverture = body.dateOuverture !== undefined ? body.dateOuverture : (existing?.date_ouverture || today);
+    const dateReabonnement = body.dateReabonnement !== undefined ? body.dateReabonnement : (existing?.date_reabonnement || nextMonth);
+    const coutRecharge = body.coutRechargeMensuel !== undefined ? Number(body.coutRechargeMensuel) : (existing?.cout_recharge_mensuel || 6500);
+    const capacite = body.capacitePlaces !== undefined ? Number(body.capacitePlaces) : (existing?.capacite_places || 15);
+    const maxProfils = body.maxProfils !== undefined ? Number(body.maxProfils) : (existing?.max_profils || 5);
+    const statut = body.statut !== undefined ? body.statut : (existing?.statut || 'actif');
+    const notes = body.notes !== undefined ? body.notes : (existing?.notes || '');
+
     this.db.run(
       `UPDATE comptes SET libelle = ?, email = ?, mot_de_passe = ?, date_ouverture = ?, date_reabonnement = ?, cout_recharge_mensuel = ?, capacite_places = ?, max_profils = ?, statut = ?, notes = ?
        WHERE id = ?`,
-      [body.libelle, body.email, body.motDePasse, body.dateOuverture, body.dateReabonnement, body.coutRechargeMensuel, body.capacitePlaces, body.maxProfils, body.statut, body.notes || '', id]
+      [libelle, email, motDePasse, dateOuverture, dateReabonnement, coutRecharge, capacite, maxProfils, statut, notes, id]
     );
     return { success: true };
   }
@@ -164,20 +215,30 @@ export class ApiController {
   @Post('profils')
   createProfil(@Body() body: any) {
     const id = body.id || 'prof-' + crypto.randomUUID().slice(0, 8);
+    const nom = body.nom || 'Profil';
+    const codePin = body.codePin || '1234';
+    const statut = body.statut || 'ok';
+    const compteId = body.compteId || '';
+
     this.db.run(
       `INSERT INTO profils (id, nom, code_pin, statut, compte_id)
        VALUES (?, ?, ?, ?, ?)`,
-      [id, body.nom, body.codePin || '1234', body.statut || 'ok', body.compteId]
+      [id, nom, codePin, statut, compteId]
     );
     return { success: true, id };
   }
 
   @Put('profils/:id')
   updateProfil(@Param('id') id: string, @Body() body: any) {
+    const existing = this.db.get<any>('SELECT * FROM profils WHERE id = ?', [id]);
+    const nom = body.nom !== undefined ? body.nom : (existing?.nom || 'Profil');
+    const codePin = body.codePin !== undefined ? body.codePin : (existing?.code_pin || '1234');
+    const statut = body.statut !== undefined ? body.statut : (existing?.statut || 'ok');
+
     this.db.run(
       `UPDATE profils SET nom = ?, code_pin = ?, statut = ?
        WHERE id = ?`,
-      [body.nom, body.codePin, body.statut, id]
+      [nom, codePin, statut, id]
     );
     return { success: true };
   }
@@ -195,21 +256,31 @@ export class ApiController {
   createMouvement(@Body() body: any) {
     const id = body.id || 'mvt-' + crypto.randomUUID().slice(0, 8);
     const date = body.date || new Date().toISOString().split('T')[0];
+    const type = body.type || 'recharge';
+    const beneficiaire = body.beneficiaire || 'Horizon';
+    const montant = Number(body.montant) || 0;
+
     this.db.run(
       `INSERT INTO mouvements_caisse (id, type, beneficiaire, montant, date, motif)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, body.type, body.beneficiaire, body.montant, date, body.motif || '']
+      [id, type, beneficiaire, montant, date, body.motif || '']
     );
     return { success: true, id };
   }
 
   @Put('caisse/mouvements/:id')
   updateMouvement(@Param('id') id: string, @Body() body: any) {
-    const date = body.date || new Date().toISOString().split('T')[0];
+    const existing = this.db.get<any>('SELECT * FROM mouvements_caisse WHERE id = ?', [id]);
+    const date = body.date !== undefined ? body.date : (existing?.date || new Date().toISOString().split('T')[0]);
+    const type = body.type !== undefined ? body.type : (existing?.type || 'recharge');
+    const beneficiaire = body.beneficiaire !== undefined ? body.beneficiaire : (existing?.beneficiaire || 'Horizon');
+    const montant = body.montant !== undefined ? Number(body.montant) : (existing?.montant || 0);
+    const motif = body.motif !== undefined ? body.motif : (existing?.motif || '');
+
     this.db.run(
       `UPDATE mouvements_caisse SET type = ?, beneficiaire = ?, montant = ?, date = ?, motif = ?
        WHERE id = ?`,
-      [body.type, body.beneficiaire, body.montant, date, body.motif || '', id]
+      [type, beneficiaire, montant, date, motif, id]
     );
     return { success: true };
   }
@@ -222,10 +293,14 @@ export class ApiController {
 
   @Post('caisse/pointage')
   updatePointage(@Body() body: any) {
+    const dernierPointageReel = body.dernierPointageReel !== undefined ? Number(body.dernierPointageReel) : 0;
+    const dateDernierPointage = body.dateDernierPointage || new Date().toISOString().split('T')[0];
+    const notes = body.notes || '';
+
     this.db.run(
       `INSERT OR REPLACE INTO caisse_pointage (id, dernier_pointage_reel, date_dernier_pointage, notes)
        VALUES ('caisse-singleton', ?, ?, ?)`,
-      [body.dernierPointageReel, body.dateDernierPointage, body.notes || '']
+      [dernierPointageReel, dateDernierPointage, notes]
     );
     return { success: true };
   }
@@ -252,15 +327,11 @@ export class ApiController {
     this.db.run(
       `INSERT INTO audit_logs (id, timestamp, user_name, action, detail)
        VALUES (?, datetime('now'), ?, ?, ?)`,
-      [id, body.userName || 'Système', body.action, body.detail]
+      [id, body.userName || 'Système', body.action || 'ACTION', body.detail || '']
     );
     return { success: true, id };
   }
 
-  // -------------------------------------------------------------
-  // BACKUP SQL
-  // -------------------------------------------------------------
-  
   // -------------------------------------------------------------
   // UTILISATEURS & LIENS DE PAIEMENT
   // -------------------------------------------------------------
@@ -271,6 +342,9 @@ export class ApiController {
     return { success: true, paymentLink };
   }
 
+  // -------------------------------------------------------------
+  // BACKUP SQL
+  // -------------------------------------------------------------
   @Get('backup/sql')
   getSqlBackup(@Res() res: any) {
     const tables = ['users', 'comptes', 'profils', 'clients', 'abonnements', 'mouvements_caisse', 'caisse_pointage', 'audit_logs', 'settings'];
@@ -312,5 +386,4 @@ export class ApiController {
     res.setHeader('Content-Disposition', `attachment; filename="horizon_service_backup_${dateStr}.sql"`);
     return res.send(sqlDump);
   }
-
 }
