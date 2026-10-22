@@ -1,0 +1,113 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+  output     = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  username  String
+  name      String?
+  role      String   @default("owner") // owner, partner
+  roleLabel String   @default("Administrateur")
+  password  String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Compte {
+  id                  String   @id @default(uuid())
+  libelle             String
+  email               String
+  motDePasse          String
+  dateOuverture       String // Format YYYY-MM-DD
+  dateReabonnement    String // Format YYYY-MM-DD
+  coutRechargeMensuel Int      @default(6500)
+  capacitePlaces      Int      @default(15)
+  maxProfils          Int      @default(5)
+  statut              String   @default("actif")
+  notes               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  profils Profil[]
+}
+
+model Profil {
+  id        String   @id @default(uuid())
+  nom       String
+  codePin   String   @default("1234")
+  statut    String   @default("ok") // ok, a_renouveler
+  compteId  String
+  compte    Compte   @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  abonnements Abonnement[]
+}
+
+model Client {
+  id        String   @id @default(uuid())
+  nom       String
+  telephone String
+  ancienId  String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  abonnements Abonnement[]
+}
+
+model Abonnement {
+  id        String   @id @default(uuid())
+  clientId  String
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  profilId  String
+  profil    Profil   @relation(fields: [profilId], references: [id], onDelete: Cascade)
+  dateDebut String // Format YYYY-MM-DD
+  dateFin   String // Format YYYY-MM-DD
+  tarif     Int      @default(1500)
+  statut    String   @default("actif") // actif, echeance_proche, expire
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MouvementCaisse {
+  id           String   @id @default(uuid())
+  type         String // prelevement, recharge, recette
+  beneficiaire String
+  montant      Int
+  date         String // Format YYYY-MM-DD
+  motif        String?
+  createdAt    DateTime @default(now())
+}
+
+model CaissePointage {
+  id                  String   @id @default("caisse-singleton")
+  dernierPointageReel Int      @default(10000)
+  dateDernierPointage String   @default("2026-10-22")
+  notes               String?
+  updatedAt           DateTime @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  userName  String
+  action    String
+  detail    String
+}
+
+model RelanceConfig {
+  id                    String   @id @default("relance-singleton")
+  messageTemplate       String
+  lienPaiementDefaut    String   @default("https://pay.wave.com/m/horizon-service")
+  numeroWhatsAppRelance String?
+  updatedAt             DateTime @updatedAt
+}
