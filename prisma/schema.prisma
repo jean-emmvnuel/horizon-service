@@ -11,101 +11,111 @@ model User {
   email     String   @unique
   username  String
   name      String?
-  role      String   @default("owner") // owner, partner
-  roleLabel String   @default("Administrateur")
+  role      String   @default("owner")
+  roleLabel String   @default("Administrateur") @map("role_label")
   password  String
   active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  paymentLink String? @map("payment_link")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
 }
 
 model Compte {
   id                  String   @id @default(uuid())
   libelle             String
   email               String
-  motDePasse          String
-  dateOuverture       String   // Format YYYY-MM-DD
-  dateReabonnement    String   // Format YYYY-MM-DD
-  coutRechargeMensuel Int      @default(6500)
-  capacitePlaces      Int      @default(15)
-  maxProfils          Int      @default(5)
+  motDePasse          String   @map("mot_de_passe")
+  dateOuverture       String   @map("date_ouverture")
+  dateReabonnement    String   @map("date_reabonnement")
+  coutRechargeMensuel Int      @default(6500) @map("cout_recharge_mensuel")
+  capacitePlaces      Int      @default(15) @map("capacite_places")
+  maxProfils          Int      @default(5) @map("max_profils")
   statut              String   @default("actif")
   notes               String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now()) @map("created_at")
 
   profils Profil[]
+
+  @@map("comptes")
 }
 
 model Profil {
-  id           String   @id @default(uuid())
-  nom          String
-  codePin      String   @default("1234")
-  statut       String   @default("ok") // ok, a_renouveler
-  compteId     String
-  compte       Compte   @relation(fields: [compteId], references: [id], onDelete: Cascade)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id        String   @id @default(uuid())
+  nom       String
+  codePin   String   @default("1234") @map("code_pin")
+  statut    String   @default("ok")
+  compteId  String   @map("compte_id")
+  compte    Compte   @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @map("created_at")
 
   abonnements Abonnement[]
+
+  @@map("profils")
 }
 
 model Client {
-  id          String   @id @default(uuid())
-  nom         String
-  telephone   String
-  ancienId    String?
-  notes       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(uuid())
+  nom       String
+  telephone String
+  ancienId  String?  @map("ancien_id")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
 
   abonnements Abonnement[]
+
+  @@map("clients")
 }
 
 model Abonnement {
   id        String   @id @default(uuid())
-  clientId  String
+  clientId  String   @map("client_id")
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  profilId  String
+  profilId  String   @map("profil_id")
   profil    Profil   @relation(fields: [profilId], references: [id], onDelete: Cascade)
-  dateDebut String   // Format YYYY-MM-DD
-  dateFin   String   // Format YYYY-MM-DD
+  dateDebut String   @map("date_debut")
+  dateFin   String   @map("date_fin")
   tarif     Int      @default(1500)
-  statut    String   @default("actif") // actif, echeance_proche, expire
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  statut    String   @default("actif")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("abonnements")
 }
 
 model MouvementCaisse {
   id           String   @id @default(uuid())
-  type         String   // prelevement, recharge, recette
+  type         String
   beneficiaire String
   montant      Int
-  date         String   // Format YYYY-MM-DD
+  date         String
   motif        String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("mouvements_caisse")
 }
 
 model CaissePointage {
   id                  String   @id @default("caisse-singleton")
-  dernierPointageReel Int      @default(10000)
-  dateDernierPointage String   @default("2026-10-22")
+  dernierPointageReel Int      @default(0) @map("dernier_pointage_reel")
+  dateDernierPointage String?  @map("date_dernier_pointage")
   notes               String?
-  updatedAt           DateTime @updatedAt
+
+  @@map("caisse_pointage")
 }
 
 model AuditLog {
   id        String   @id @default(uuid())
   timestamp DateTime @default(now())
-  userName  String
+  userName  String   @map("user_name")
   action    String
   detail    String
+
+  @@map("audit_logs")
 }
 
 model RelanceConfig {
-  id                    String   @id @default("relance-singleton")
-  messageTemplate       String
-  lienPaiementDefaut    String   @default("https://pay.wave.com/m/horizon-service")
-  numeroWhatsAppRelance String?
-  updatedAt             DateTime @updatedAt
+  key   String @id
+  value String
+
+  @@map("settings")
 }
