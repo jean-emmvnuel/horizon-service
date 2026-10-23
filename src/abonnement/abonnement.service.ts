@@ -3,21 +3,21 @@ import { DatabaseService } from '../database.service';
 
 @Injectable()
 export class AbonnementService {
-    constructor(private readonly db: DatabaseService) {}
+  constructor(private readonly db: DatabaseService) {}
 
-    async createAbonnement(data: any) {
-        return { success: true };
-    }
-    async getAbonnement() {
-        return this.db.query('SELECT * FROM abonnements');
-    }
-    async getAbonnementById(id: string) {
-        return this.db.get('SELECT * FROM abonnements WHERE id = ?', [id]);
-    }
-    async updateAbonnement(id: string, data: any) {
-        return { success: true };
-    }
-    async deleteAbonnement(id: string) {
-        return { success: true };
-    }
+  async createAbonnement(data: any) {
+    return { success: true };
+  }
+  async getAbonnement() {
+    return await this.db.query('SELECT * FROM abonnements');
+  }
+  async getAbonnementById(id: string) {
+    return await this.db.get('SELECT * FROM abonnements WHERE id = ?', [id]);
+  }
+  async updateAbonnement(id: string, data: any) {
+    return { success: true };
+  }
+  async deleteAbonnement(id: string) {
+    return { success: true };
+  }
 }

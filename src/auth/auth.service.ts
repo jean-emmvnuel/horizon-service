@@ -16,7 +16,7 @@ export class AuthService {
   async register(data: registerDto) {
     const { username, email, password } = data;
 
-    const existing = this.db.get('SELECT id FROM users WHERE email = ?', [email]);
+    const existing = await this.db.get('SELECT id FROM users WHERE email = ?', [email]);
     if (existing) {
       throw new ConflictException('Cet email est déjà utilisé');
     }
@@ -24,9 +24,9 @@ export class AuthService {
     const hash = await bcrypt.hash(password, 10);
     const id = crypto.randomUUID();
 
-    this.db.run(
+    await this.db.run(
       `INSERT INTO users (id, email, username, name, password, role, role_label, active)
-       VALUES (?, ?, ?, ?, ?, 'owner', 'Administrateur', 1)`,
+       VALUES (?, ?, ?, ?, ?, 'owner', 'Administrateur', true)`,
       [id, email, username, username, hash]
     );
 
@@ -45,7 +45,7 @@ export class AuthService {
 
   async login(data: loginDto) {
     const { email, password } = data;
-    const user = this.db.get<any>('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await this.db.get<any>('SELECT * FROM users WHERE email = ?', [email]);
 
     if (!user || !user.active) {
       throw new UnauthorizedException('Identifiants incorrects ou compte inactif');
@@ -84,7 +84,7 @@ export class AuthService {
   }
 
   async validateUser(userId: string) {
-    const user = this.db.get<any>(
+    const user = await this.db.get<any>(
       'SELECT id, username, name, email, role, role_label as roleLabel, active, payment_link as paymentLink, created_at as createdAt FROM users WHERE id = ?',
       [userId]
     );

@@ -1,35 +1,71 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import Database from 'better-sqlite3';
-import * as path from 'path';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Pool } from 'pg';
+import * as dotenv from "dotenv";
+import * as path from "path";
+
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+dotenv.config();
 
 @Injectable()
-export class DatabaseService implements OnModuleInit {
-  private db: Database.Database;
+export class DatabaseService implements OnModuleInit, OnModuleDestroy {
+  private pool: Pool;
 
   constructor() {
-    const dbPath = path.resolve(__dirname, '..', 'dev.db');
-    this.db = new Database(dbPath);
-    this.db.pragma('journal_mode = WAL');
-    this.db.pragma('foreign_keys = ON');
+    const connectionString = process.env.DATABASE_URL;
+    this.pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+    });
   }
 
-  onModuleInit() {
-    console.log('✅ Base de données SQLite connectée avec succès (dev.db)');
+  async onModuleInit() {
+    try {
+      const res = await this.pool.query('SELECT NOW() as now');
+      console.log('✅ Base de données PostgreSQL Supabase connectée avec succès :', res.rows[0].now);
+    } catch (error) {
+      console.error('❌ Échec de la connexion Supabase:', error.message);
+    }
   }
 
-  getDb(): Database.Database {
-    return this.db;
+  async onModuleDestroy() {
+    if (this.pool && !(this.pool as any).ended) {
+      try {
+        await this.pool.end();
+      } catch (e) {}
+    }
   }
 
-  query<T = any>(sql: string, params: any[] = []): T[] {
-    return this.db.prepare(sql).all(...params) as T[];
+  private formatSql(sql: string): string {
+    let paramIndex = 1;
+    let formatted = sql.replace(/\?/g, () => `$${paramIndex++}`);
+    formatted = formatted.replace(/datetime\('now'\)/gi, 'CURRENT_TIMESTAMP');
+    formatted = formatted.replace(/datetime\("now"\)/gi, 'CURRENT_TIMESTAMP');
+    return formatted;
   }
 
-  get<T = any>(sql: string, params: any[] = []): T | undefined {
-    return this.db.prepare(sql).get(...params) as T | undefined;
+  async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
+    const formattedSql = this.formatSql(sql);
+    const result = await this.pool.query(formattedSql, params);
+    return result.rows as T[];
   }
 
-  run(sql: string, params: any[] = []): Database.RunResult {
-    return this.db.prepare(sql).run(...params);
+  async get<T = any>(sql: string, params: any[] = []): Promise<T | undefined> {
+    const rows = await this.query<T>(sql, params);
+    return rows[0];
+  }
+
+  async run(sql: string, params: any[] = []): Promise<any> {
+    const formattedSql = this.formatSql(sql);
+    const result = await this.pool.query(formattedSql, params);
+    return {
+      rowCount: result.rowCount,
+      command: result.command,
+    };
+  }
+
+  getPool(): Pool {
+    return this.pool;
   }
 }

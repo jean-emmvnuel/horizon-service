@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './app.module';
+import { DatabaseService } from './database.service';
+
+jest.setTimeout(60000);
 
 describe('Endpoints E2E Integration Suite', () => {
   let app: INestApplication;
@@ -19,7 +22,7 @@ describe('Endpoints E2E Integration Suite', () => {
 
     app = moduleFixture.createNestApplication();
     await app.init();
-  });
+  }, 60000);
 
   afterAll(async () => {
     await app.close();

@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -8,18 +9,21 @@ dotenv.config();
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor() {
-    const rawUrl = process.env.DATABASE_URL || 'dev.db';
-    const dbPath = rawUrl.replace(/^file:/, '');
-    const adapter = new PrismaBetterSqlite3({ url: dbPath });
+    const connectionString = process.env.DATABASE_URL;
+    const pool = new Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false }
+    });
+    const adapter = new PrismaPg(pool);
     super({ adapter });
   }
 
   async onModuleInit() {
     try {
       await this.$connect();
-      console.log('✅ Base de données SQLite connectée avec succès');
+      console.log('✅ Base de données PostgreSQL Supabase connectée avec succès');
     } catch (error) {
-      console.error('❌ Échec de la connexion SQLite:', error.message);
+      console.error('❌ Échec de la connexion PostgreSQL Supabase:', error.message);
     }
   }
 }
