@@ -12,7 +12,7 @@ export class registerDto {
         minLength: 3,
         maxLength: 50,
     })
-    @IsString({ message: 'Le nom d\'utilisateur doit etre une chaine de caracteres' })
+    @IsString({ message: 'Le nom d\'utilisateur doit être une chaîne de caractères' })
     @IsNotEmpty({ message: 'Le nom d\'utilisateur est obligatoire' })
     username: string;
 
@@ -22,11 +22,11 @@ export class registerDto {
         description: 'Email de l\'utilisateur',
         required: true,
     })
-    @IsString({ message: 'L\'email doit etre une chaine de caracteres' })
+    @IsString({ message: 'L\'adresse e-mail doit être une chaîne de caractères' })
     @IsNotEmpty({ message: 'L\'email est obligatoire' })
     @IsEmail({
         blacklisted_chars: "/,?{}[]#$%^&*()",
-    }, { message: 'L\'email doit etre un email valide' })
+    }, { message: 'L\'adresse e-mail doit être valide' })
     email: string;
 
 
@@ -37,8 +37,8 @@ export class registerDto {
         minLength: 8,
         maxLength: 50,
     })
-    @IsString({ message: 'Le mot de passe doit etre une chaine de caracteres' })
-    @MinLength(12, { message: 'Le mot de passe doit contenir au moins 12 caracteres' })
+    @IsString({ message: 'Le mot de passe doit être une chaîne de caractères' })
+    @MinLength(12, { message: 'Le mot de passe doit contenir au moins 12 caractères' })
     @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/, {
         message: 'Le mot de passe doit contenir au moins une lettre majuscule, une lettre minuscule, un chiffre et un caractère spécial'
     })
