@@ -112,10 +112,10 @@ export class ApiController {
   @Post('clients')
   async createClient(@Body() body: any) {
     const id = body.id || 'cli-' + crypto.randomUUID().slice(0, 8);
-    const nom = (body.nom || 'Nouveau client').trim();
-    const telephone = (body.telephone || '').trim();
-    const ancienId = (body.ancienId || '').trim();
-    const notes = (body.notes || '').trim();
+    const nom = String(body.nom || '').trim();
+    const telephone = String(body.telephone || '').trim();
+    const ancienId = String(body.ancienId || '').trim();
+    const notes = String(body.notes || '').trim();
 
     await this.db.run(
       `INSERT INTO clients (id, nom, telephone, ancien_id, notes)
@@ -128,10 +128,10 @@ export class ApiController {
   @Put('clients/:id')
   async updateClient(@Param('id') id: string, @Body() body: any) {
     const existing = await this.db.get<any>('SELECT * FROM clients WHERE id = ?', [id]);
-    const nom = body.nom !== undefined ? body.nom.trim() : (existing?.nom || '');
-    const telephone = body.telephone !== undefined ? body.telephone.trim() : (existing?.telephone || '');
-    const ancienId = body.ancienId !== undefined ? body.ancienId.trim() : (existing?.ancien_id || '');
-    const notes = body.notes !== undefined ? body.notes.trim() : (existing?.notes || '');
+    const nom = body.nom !== undefined ? String(body.nom || '').trim() : (existing?.nom || '');
+    const telephone = body.telephone !== undefined ? String(body.telephone || '').trim() : (existing?.telephone || '');
+    const ancienId = body.ancienId !== undefined ? String(body.ancienId || '').trim() : (existing?.ancien_id || '');
+    const notes = body.notes !== undefined ? String(body.notes || '').trim() : (existing?.notes || '');
 
     await this.db.run(
       `UPDATE clients SET nom = ?, telephone = ?, ancien_id = ?, notes = ?

@@ -137,6 +137,15 @@ describe('ApiController (Endpoints Unit Tests)', () => {
       expect(mockDb.run).toHaveBeenCalled();
     });
 
+    it('POST /api/clients: should accept an empty name and phone number', async () => {
+      const res = await controller.createClient({});
+      expect(res.success).toBe(true);
+      expect(mockDb.run).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO clients'),
+        [res.id, '', '', '', ''],
+      );
+    });
+
     it('PUT /api/clients/:id: should update a client', async () => {
       mockDb.get.mockResolvedValueOnce({ nom: 'John', telephone: '+22507000000', notes: '' });
       const res = await controller.updateClient('cli-1', { nom: 'John Updated' });
