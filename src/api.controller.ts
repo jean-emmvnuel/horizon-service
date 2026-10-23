@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
 import { DatabaseService } from './database.service';
 import * as crypto from 'crypto';
 
@@ -11,7 +11,7 @@ export class ApiController {
   // -------------------------------------------------------------
   @Get('data')
   async getAllData() {
-    const users = await this.db.query('SELECT id, email, username, name, role, role_label as "roleLabel", active, payment_link as "paymentLink" FROM users');
+    const users = await this.db.query('SELECT id, email, username, name, role, role_label as "roleLabel", active FROM users');
     const comptes = await this.db.query(`
       SELECT id, libelle, email, mot_de_passe as "motDePasse", date_ouverture as "dateOuverture", 
              date_reabonnement as "dateReabonnement", cout_recharge_mensuel as "coutRechargeMensuel", 
@@ -32,18 +32,6 @@ export class ApiController {
     `)) || { dernierPointageReel: 10000, dateDernierPointage: '2026-10-22', notes: '' };
     const auditLogs = await this.db.query('SELECT id, timestamp, user_name as "userName", action, detail FROM audit_logs ORDER BY timestamp DESC');
     
-    let relanceConfig = {
-      messageTemplate: "Bonjour {nom}, votre abonnement Netflix Horizon Service arrive à échéance le {dateFin}.\n\nPour continuer à profiter de vos programmes sans coupure, vous pouvez effectuer le règlement de {tarif} FCFA via ce lien de paiement sécurisé :\n{lienPaiement}\n\nMerci pour votre fidélité !",
-      lienPaiementDefaut: "https://pay.wave.com/m/horizon-service",
-      lienPaiementEmmanuel: "https://pay.wave.com/m/horizon-service-emmanuel",
-      lienPaiementMalan: "https://pay.wave.com/m/horizon-service-malan",
-      numeroWhatsAppRelance: ""
-    };
-    const savedSetting = await this.db.get<{ value: string }>('SELECT value FROM settings WHERE key = ?', ['relanceConfig']);
-    if (savedSetting) {
-      try { relanceConfig = JSON.parse(savedSetting.value); } catch (e) {}
-    }
-
     return {
       users,
       comptes,
@@ -52,8 +40,7 @@ export class ApiController {
       abonnements,
       caisse: caissePointage,
       mouvementsCaisse,
-      auditLogs,
-      relanceConfig
+      auditLogs
     };
   }
 
@@ -262,11 +249,16 @@ export class ApiController {
     const type = body.type || 'recharge';
     const beneficiaire = body.beneficiaire || 'Horizon';
     const montant = Number(body.montant) || 0;
+    const motif = String(body.motif || '').trim();
+
+    if (type === 'depense_justifiee' && !motif) {
+      throw new BadRequestException('Le motif est obligatoire pour une dépense justifiée.');
+    }
 
     await this.db.run(
       `INSERT INTO mouvements_caisse (id, type, beneficiaire, montant, date, motif)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, type, beneficiaire, montant, date, body.motif || '']
+      [id, type, beneficiaire, montant, date, motif]
     );
     return { success: true, id };
   }
@@ -279,6 +271,10 @@ export class ApiController {
     const beneficiaire = body.beneficiaire !== undefined ? body.beneficiaire : (existing?.beneficiaire || 'Horizon');
     const montant = body.montant !== undefined ? Number(body.montant) : (existing?.montant || 0);
     const motif = body.motif !== undefined ? body.motif : (existing?.motif || '');
+
+    if (type === 'depense_justifiee' && !String(motif || '').trim()) {
+      throw new BadRequestException('Le motif est obligatoire pour une dépense justifiée.');
+    }
 
     await this.db.run(
       `UPDATE mouvements_caisse SET type = ?, beneficiaire = ?, montant = ?, date = ?, motif = ?
@@ -313,20 +309,6 @@ export class ApiController {
   }
 
   // -------------------------------------------------------------
-  // PARAMÈTRES & RELANCES
-  // -------------------------------------------------------------
-  @Post('settings/relance')
-  async updateRelanceConfig(@Body() body: any) {
-    await this.db.run(
-      `INSERT INTO settings (key, value)
-       VALUES ('relanceConfig', ?)
-       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value`,
-      [JSON.stringify(body)]
-    );
-    return { success: true };
-  }
-
-  // -------------------------------------------------------------
   // AUDIT LOGS
   // -------------------------------------------------------------
   @Post('audit')
@@ -338,16 +320,6 @@ export class ApiController {
       [id, body.userName || 'Système', body.action || 'ACTION', body.detail || '']
     );
     return { success: true, id };
-  }
-
-  // -------------------------------------------------------------
-  // UTILISATEURS & LIENS DE PAIEMENT
-  // -------------------------------------------------------------
-  @Put('users/:id/payment-link')
-  async updateUserPaymentLink(@Param('id') id: string, @Body() body: any) {
-    const paymentLink = body.paymentLink || '';
-    await this.db.run('UPDATE users SET payment_link = ? WHERE id = ?', [paymentLink, id]);
-    return { success: true, paymentLink };
   }
 
   // -------------------------------------------------------------
@@ -363,7 +335,9 @@ export class ApiController {
     sqlDump += '-- =========================================================\n\n';
 
     for (const table of tables) {
-      const rows = await this.db.query<any>('SELECT * FROM ' + table);
+      const rows = table === 'users'
+        ? await this.db.query<any>('SELECT id, email, username, name, role, role_label, password, active, payment_link, created_at FROM users')
+        : await this.db.query<any>('SELECT * FROM ' + table);
       if (rows && rows.length > 0) {
         sqlDump += '-- Données: ' + table + ' (' + rows.length + ' lignes)\n';
         for (const row of rows) {

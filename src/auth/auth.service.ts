@@ -45,7 +45,10 @@ export class AuthService {
 
   async login(data: loginDto) {
     const { email, password } = data;
-    const user = await this.db.get<any>('SELECT * FROM users WHERE email = ?', [email]);
+    const user = await this.db.get<any>(
+      'SELECT id, email, username, name, role, role_label, password, active FROM users WHERE email = ?',
+      [email],
+    );
 
     if (!user || !user.active) {
       throw new UnauthorizedException('Identifiants incorrects ou compte inactif');
@@ -76,7 +79,6 @@ export class AuthService {
           email: user.email,
           role: user.role,
           roleLabel: user.role_label,
-          paymentLink: user.payment_link,
         },
         token,
       },
@@ -85,7 +87,7 @@ export class AuthService {
 
   async validateUser(userId: string) {
     const user = await this.db.get<any>(
-      'SELECT id, username, name, email, role, role_label as roleLabel, active, payment_link as paymentLink, created_at as createdAt FROM users WHERE id = ?',
+      'SELECT id, username, name, email, role, role_label as roleLabel, active, created_at as createdAt FROM users WHERE id = ?',
       [userId]
     );
     if (!user) {

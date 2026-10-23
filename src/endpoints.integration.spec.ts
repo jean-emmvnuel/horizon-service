@@ -212,18 +212,7 @@ describe('Endpoints E2E Integration Suite', () => {
     expect(res.body.success).toBe(true);
   });
 
-  it('17. POST /api/settings/relance - configuration relance WhatsApp', async () => {
-    const res = await request(app.getHttpServer())
-      .post('/api/settings/relance')
-      .send({
-        messageTemplate: 'Bonjour {nom}, rappel de votre abonnement {tarif} FCFA',
-        lienPaiementDefaut: 'https://pay.wave.com/m/horizon-service',
-      });
-    expect([200, 201]).toContain(res.status);
-    expect(res.body.success).toBe(true);
-  });
-
-  it('18. POST /api/audit - journalisation action', async () => {
+  it('17. POST /api/audit - journalisation action', async () => {
     const res = await request(app.getHttpServer())
       .post('/api/audit')
       .send({
@@ -235,24 +224,14 @@ describe('Endpoints E2E Integration Suite', () => {
     expect(res.body.success).toBe(true);
   });
 
-  it('19. PUT /api/users/:id/payment-link - mise à jour lien paiement utilisateur', async () => {
-    const res = await request(app.getHttpServer())
-      .put('/api/users/u-1/payment-link')
-      .send({
-        paymentLink: 'https://pay.wave.com/m/horizon-service-emmanuel',
-      });
-    expect([200, 201]).toContain(res.status);
-    expect(res.body.success).toBe(true);
-  });
-
-  it('20. GET /api/backup/sql - téléchargement sauvegarde SQL', async () => {
+  it('18. GET /api/backup/sql - téléchargement sauvegarde SQL', async () => {
     const res = await request(app.getHttpServer()).get('/api/backup/sql');
     expect(res.status).toBe(200);
     expect(res.headers['content-type']).toContain('sql');
     expect(res.text).toContain('HORIZON SERVICE');
   });
 
-  it('21. Nettoyage des données de test (DELETE en cascade)', async () => {
+  it('19. Nettoyage des données de test (DELETE en cascade)', async () => {
     const resSub = await request(app.getHttpServer()).delete(`/api/abonnements/${testAbonnementId}`);
     expect(resSub.status).toBe(200);
 

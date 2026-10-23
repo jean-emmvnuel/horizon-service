@@ -40,13 +40,17 @@ describe('ApiController (Endpoints Unit Tests)', () => {
       mockDb.query.mockResolvedValueOnce([]);
       mockDb.get.mockResolvedValueOnce({ dernierPointageReel: 5000 });
       mockDb.query.mockResolvedValueOnce([]);
-      mockDb.get.mockResolvedValueOnce({ value: JSON.stringify({ test: true }) });
 
       const res = await controller.getAllData();
       expect(res).toBeDefined();
       expect(res.users).toBeDefined();
       expect(res.comptes).toBeDefined();
       expect(res.caisse).toBeDefined();
+      expect(res.mouvementsCaisse).toEqual([]);
+      expect(res.auditLogs).toEqual([]);
+      expect(res).not.toHaveProperty('relanceConfig');
+      expect(mockDb.get).toHaveBeenCalledTimes(1);
+      expect(mockDb.query.mock.calls[0][0]).not.toContain('payment_link');
       expect(mockDb.query).toHaveBeenCalled();
     });
   });
@@ -185,6 +189,15 @@ describe('ApiController (Endpoints Unit Tests)', () => {
       expect(mockDb.run).toHaveBeenCalled();
     });
 
+    it('POST /api/caisse/mouvements: should require a reason for justified expenses', async () => {
+      await expect(controller.createMouvement({
+        type: 'depense_justifiee',
+        beneficiaire: 'Transport',
+        montant: 1500,
+      })).rejects.toThrow('Le motif est obligatoire pour une dépense justifiée.');
+      expect(mockDb.run).not.toHaveBeenCalled();
+    });
+
     it('PUT /api/caisse/mouvements/:id: should update a cash movement', async () => {
       mockDb.get.mockResolvedValueOnce({ type: 'recharge', beneficiaire: 'Compte 1', montant: 7000, date: '2026-10-22' });
       const res = await controller.updateMouvement('mvt-1', { montant: 7500 });
@@ -205,24 +218,11 @@ describe('ApiController (Endpoints Unit Tests)', () => {
     });
   });
 
-  describe('SETTINGS & AUDIT & USERS Endpoints', () => {
-    it('POST /api/settings/relance: should update WhatsApp relance config', async () => {
-      const res = await controller.updateRelanceConfig({ messageTemplate: 'Nouveau message' });
-      expect(res.success).toBe(true);
-      expect(mockDb.run).toHaveBeenCalled();
-    });
-
+  describe('AUDIT Endpoints', () => {
     it('POST /api/audit: should record an audit log', async () => {
       const res = await controller.logAction({ userName: 'emmanuel', action: 'CREATION_COMPTE', detail: 'Compte 1 créé' });
       expect(res.success).toBe(true);
       expect(res.id).toMatch(/^log-/);
-      expect(mockDb.run).toHaveBeenCalled();
-    });
-
-    it('PUT /api/users/:id/payment-link: should update payment link', async () => {
-      const res = await controller.updateUserPaymentLink('u-1', { paymentLink: 'https://pay.wave.com/m/custom' });
-      expect(res.success).toBe(true);
-      expect(res.paymentLink).toBe('https://pay.wave.com/m/custom');
       expect(mockDb.run).toHaveBeenCalled();
     });
 
@@ -236,6 +236,9 @@ describe('ApiController (Endpoints Unit Tests)', () => {
       await controller.getSqlBackup(resMock);
       expect(resMock.setHeader).toHaveBeenCalledWith('Content-Type', 'application/sql');
       expect(resMock.send).toHaveBeenCalled();
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining('FROM users'));
+      expect(mockDb.query).toHaveBeenCalledWith('SELECT * FROM settings');
+      expect(mockDb.query).toHaveBeenCalledWith(expect.stringContaining('payment_link'));
     });
   });
 });
