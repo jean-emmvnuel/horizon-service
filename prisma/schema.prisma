@@ -97,7 +97,7 @@ model MouvementCaisse {
 model CaissePointage {
   id                  String   @id @default("caisse-singleton")
   dernierPointageReel Int      @default(0) @map("dernier_pointage_reel")
-  dateDernierPointage String?  @map("date_dernier_pointage")
+  dateDernierPointage String   @default("2026-10-22") @map("date_dernier_pointage")
   notes               String?
 
   @@map("caisse_pointage")
