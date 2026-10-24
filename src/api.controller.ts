@@ -26,10 +26,11 @@ export class ApiController {
       FROM abonnements
     `);
     const mouvementsCaisse = await this.db.query('SELECT id, type, beneficiaire, montant, date, motif FROM mouvements_caisse ORDER BY date DESC');
+    const today = new Date().toISOString().split('T')[0];
     const caissePointage = (await this.db.get(`
       SELECT dernier_pointage_reel as "dernierPointageReel", date_dernier_pointage as "dateDernierPointage", notes 
       FROM caisse_pointage WHERE id = 'caisse-singleton'
-    `)) || { dernierPointageReel: 10000, dateDernierPointage: '2026-10-22', notes: '' };
+    `)) || { dernierPointageReel: 10000, dateDernierPointage: today, notes: '' };
     const auditLogs = await this.db.query('SELECT id, timestamp, user_name as "userName", action, detail FROM audit_logs ORDER BY timestamp DESC');
     
     return {
